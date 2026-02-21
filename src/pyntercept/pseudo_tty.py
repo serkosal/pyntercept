@@ -40,7 +40,7 @@ def pty_make_controlling_tty(tty_fd):
     os.close(fd)
 
 
-def create_pty(cmd: str, argv: list[str]) -> tuple[int, int, int]:
+def create_pty(argv: list[str]) -> tuple[int, int, int]:
     parent_fd, child_fd = os.openpty()
     
     if parent_fd < 0 or child_fd < 0:
@@ -55,7 +55,7 @@ def create_pty(cmd: str, argv: list[str]) -> tuple[int, int, int]:
         os.dup2(child_fd, pty.STDOUT_FILENO)
         os.dup2(child_fd, pty.STDERR_FILENO)
         
-        os.execlp(cmd, *argv)
+        os.execlp(argv[0], *argv)
     # we keep child_fd opening to be able to resize it
     # else: 
     #     os.close(child_fd)

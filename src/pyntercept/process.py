@@ -13,7 +13,7 @@ class PTYProcess:
     
     def __init__(
         self, 
-        cmd: str, argv: list[str], 
+        argv: list[str], 
         
         width: int | None = None, height: int | None = None,
         
@@ -23,7 +23,7 @@ class PTYProcess:
         in_upd_callback: Callable[ [Self], bytes | None] | None = None,
         out_upd_callback: Callable[ [Self], bytes | None] | None = None,
     ):
-        pid, master_fd, child_fd = create_pty(cmd, argv)
+        pid, master_fd, child_fd = create_pty(argv)
         
         self.pid = pid
         self.master_fd = master_fd
