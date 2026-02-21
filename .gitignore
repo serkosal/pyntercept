@@ -1,0 +1,6 @@
+# python packaging
+dist
+
+# python
+.venv
+__pycache__

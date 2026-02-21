@@ -1,0 +1,28 @@
+[project]
+name = "pyntercept"
+version = "0.0.1a1"
+authors = [
+    { name="Sergey Kosykh", email="s3rkosal@gmail.com"}
+]
+description = "library & utility to intercept i/o from interactive CLI programs"
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Environment :: Console"
+]
+license-files = ["LICENSE"]
+requires-python = ">=3.12"
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/serkosal/pyntercept"
+Issues = "https://github.com/serkosal/pyntercept/issues"
+
+[project.scripts]
+pyntercept = "pyntercept.main:main"
+
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
