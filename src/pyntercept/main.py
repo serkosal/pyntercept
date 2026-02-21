@@ -23,7 +23,7 @@ def main():
     
     pty_process = PTYProcess(
         sys.argv[1], 
-        *sys.argv[1:], 
+        sys.argv[1:], 
         out_upd_callback=on_out_upd
     )
     

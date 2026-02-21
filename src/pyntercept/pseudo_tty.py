@@ -40,7 +40,7 @@ def pty_make_controlling_tty(tty_fd):
     os.close(fd)
 
 
-def create_pty(cmd: str, *argv) -> tuple[int, int, int]:
+def create_pty(cmd: str, argv: list[str]) -> tuple[int, int, int]:
     parent_fd, child_fd = os.openpty()
     
     if parent_fd < 0 or child_fd < 0:
