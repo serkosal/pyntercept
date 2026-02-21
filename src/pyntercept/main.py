@@ -1,60 +1,42 @@
 #!/usr/bin/env python3
 
-import os
 import sys
-import select
-import termios
 
 from pyntercept.draw import draw_data
 from pyntercept.tty_utils import enter_raw_mode, exit_raw_mode, switch_echo
-from pyntercept.pseudo_tty import create_pty
+from pyntercept.process import PTYProcess
 
-def child_alive(pid):
-    # Availability: Unix, Windows, not WASI, not Android, not iOS.
-    rpid, _ = os.waitpid(pid, os.WNOHANG)
-    return rpid == 0
+stdin_fd = sys.stdin.fileno()
+stdout_fd = sys.stdin.fileno()
 
+def on_out_upd(process: PTYProcess) -> bytes:
+    data = process.on_out_fd_upd()
 
-def main():
-    stdin_fd = sys.stdin.fileno()
-    stdout_fd = sys.stdin.fileno()
+    draw_data(data, stdout_fd)
     
-    print(sys.argv)
+    return data
+
+def main():    
     if len(sys.argv) < 2:
         print('you must specify executable program!')
         return
-    pid, master_fd, child_fd = create_pty(sys.argv[1], *sys.argv[1:])
-    termios.tcsetwinsize(child_fd, (20, 60))
     
-    if pid == 0:
-        return
+    pty_process = PTYProcess(
+        sys.argv[1], 
+        *sys.argv[1:], 
+        out_upd_callback=on_out_upd
+    )
     
     try:
         switch_echo(stdin_fd, False)
         old_stdin = enter_raw_mode(stdin_fd)
         old_stdout = enter_raw_mode(stdout_fd)
         
-        output_data = os.read(master_fd, 1024)
-        draw_data(output_data)
+        draw_data(pty_process.on_out_fd_upd())
         
-        while True:
-            if not child_alive(pid):
-                break
-            
-            # aks OS for file descriptors updates
-            rlist, _, _ = select.select([stdin_fd, master_fd], [], [], 0)
-            
-            if stdin_fd in rlist:
-                data = os.read(stdin_fd, 2048)  # read user input
-                os.write(master_fd, data)       # pass input into editor process
-                # if not child_alive(pid):
-                #     break
-                
-            if master_fd in rlist:
-                data = os.read(master_fd, 2048) # read output from editor
-                if not data:
-                    break
-                draw_data(data)                 # draw that output
+        while pty_process.update():
+            pass
+        
     except OSError: # this happens when child process dies
         pass
     finally:
