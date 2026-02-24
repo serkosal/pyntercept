@@ -6,7 +6,7 @@ import errno
 # code is mainly taken away from ptyprocess
 # 
 
-def pty_make_controlling_tty(tty_fd):
+def pty_make_controlling_tty(tty_fd: int):
     child_name = os.ttyname(tty_fd)
         
     # Disconnect from controlling tty, if any.  Raises OSError of ENXIO
@@ -56,9 +56,7 @@ def create_pty(argv: list[str]) -> tuple[int, int, int]:
         os.dup2(child_fd, pty.STDERR_FILENO)
         
         os.execlp(argv[0], *argv)
-    # we keep child_fd opening to be able to resize it
-    # else: 
-    #     os.close(child_fd)
+    # we keep child_fd opened to be able to resize it from parent process
         
     return pid, parent_fd, child_fd
 
