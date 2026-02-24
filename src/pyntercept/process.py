@@ -1,11 +1,17 @@
 from collections.abc import Callable, Awaitable
+
 import termios
 import os
 import select
 import sys
-from typing import Self
+from typing import Protocol
 
 from pyntercept.pseudo_tty import create_pty
+
+class FD_UpdCallback(Protocol):
+    def __call__(self, process: "PTYProcess", *args, **kwds) -> bytes | None: 
+        ...
+
 
 class PTYProcess:
     # width: int
@@ -20,8 +26,8 @@ class PTYProcess:
         in_fd: int | None = None, out_fd: int | None = None, 
         err_fd: int | None = None,
         
-        in_upd_callback: Callable[ [Self], bytes | None] | None = None,
-        out_upd_callback: Callable[ [Self], bytes | None] | None = None,
+        in_upd_callback: FD_UpdCallback | None = None,
+        out_upd_callback: FD_UpdCallback | None = None,
     ):
         pid, master_fd, child_fd = create_pty(argv)
         
@@ -59,39 +65,49 @@ class PTYProcess:
         return rpid == 0
     
     
-    def update(self) -> bool:
-        # returns False if process terminated
-        
-        if not self.child_alive():
-            return False
-            
+    def update(self, *args, **kwargs) -> bool:
         # aks OS for file descriptors updates
         rlist, _, _ = select.select([self.in_fd, self.master_fd], [], [], 0)
         
         return_status = True
         if self.in_fd in rlist:
             if self.in_upd_callback:
-                res = self.in_upd_callback(self)
+                res = self.in_upd_callback(self, *args, **kwargs)
             else:    
-                res = self.on_in_fd_upd()
+                res = self.on_in_fd_upd(*args, **kwargs)
             return_status *= res is not None
             
         if self.master_fd in rlist:
             if self.out_upd_callback:
-                res = self.out_upd_callback(self)
+                res = self.out_upd_callback(self, *args, **kwargs)
             else:
-                res = self.on_out_fd_upd()
+                res = self.on_out_fd_upd(*args, **kwargs)
             return_status *= res is not None
+            
+        # returns False if process terminated
+        if not self.child_alive():
+            return False
             
         return return_status
     
     
-    def on_in_fd_upd(process) -> bytes:
+    def read(self) -> bytes:
+        return os.read(self.master_fd, 2048)
+    
+    
+    def write(self, data: bytes) -> int:
+        return os.write(self.master_fd, data)
+    
+    
+    def on_in_fd_upd(process, *args, **kwargs) -> bytes:
+        '''Reads input from source (default stdin) and pass to the child.'''
         data =  os.read(process.in_fd, 2048)    # read user input
-        os.write(process.master_fd, data)       # pass input into editor process
+        process.write(data)                     # pass input into child process
         
         return data
     
     
-    def on_out_fd_upd(process) -> bytes:
-        return os.read(process.master_fd, 2048) # read output from editor
+    def on_out_fd_upd(process, *args, **kwargs) -> bytes:
+        '''Does nothing, just reads data from child and returns it.'''
+        
+        return process.read()                   # read output from editor

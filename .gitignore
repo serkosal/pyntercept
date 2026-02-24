@@ -1,6 +1,7 @@
-# python packaging
-dist
-
 # python
 .venv
 __pycache__
+dist
+
+# log files
+*.log

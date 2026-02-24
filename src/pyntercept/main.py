@@ -2,6 +2,8 @@
 
 import sys
 
+from io import TextIOWrapper
+
 from pyntercept.draw import draw_data
 from pyntercept.tty_utils import enter_raw_mode, exit_raw_mode, switch_echo
 from pyntercept.process import PTYProcess
@@ -9,10 +11,11 @@ from pyntercept.process import PTYProcess
 stdin_fd = sys.stdin.fileno()
 stdout_fd = sys.stdin.fileno()
 
-def on_out_upd(process: PTYProcess) -> bytes:
+def on_out_upd(process: PTYProcess, file: TextIOWrapper) -> bytes:
     data = process.on_out_fd_upd()
 
     draw_data(data, stdout_fd)
+    file.write(data.decode() + '\n')
     
     return data
 
@@ -31,11 +34,12 @@ def main():
         old_stdin = enter_raw_mode(stdin_fd)
         old_stdout = enter_raw_mode(stdout_fd)
         
-        draw_data(pty_process.on_out_fd_upd())
+        with open('out.log', 'wt') as out_log:
+            draw_data(pty_process.on_out_fd_upd())
         
-        while pty_process.update():
-            pass
-        
+            while pty_process.update(out_log):
+                pass
+    
     except OSError: # this happens when child process dies
         pass
     finally:
