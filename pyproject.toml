@@ -1,6 +1,6 @@
 [project]
 name = "pyntercept"
-version = "0.0.5.dev1"
+version = "0.0.5.dev2"
 authors = [
     { name="Sergey Kosykh", email="s3rkosal@gmail.com"}
 ]
@@ -14,7 +14,9 @@ classifiers = [
 ]
 license-files = ["LICENSE"]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pyte>=0.8.2",
+]
 
 [project.urls]
 Homepage = "https://github.com/serkosal/pyntercept"

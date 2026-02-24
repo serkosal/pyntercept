@@ -1,11 +1,20 @@
 import termios
 import tty
+import os
 
 def enter_raw_mode(fd):
     """Enters raw mode for the given file descriptor."""
     old_settings = termios.tcgetattr(fd) #
     tty.setraw(fd) #
     return old_settings
+
+
+def alternate_scr_on(fd):
+    os.write(fd, b'\x1B[?1049h')
+
+
+def alternate_scr_off(fd):
+    os.write(fd, b'\x1B[?1049l')
 
 
 def exit_raw_mode(fd, settings):
