@@ -5,31 +5,31 @@ programs using PTYs.
 
 ## explanation, possible questions, reasoning
 
-**What are pseudo-terminals (PTY)?**
+**What are pseudo-terminals (PTY)?**<br>
 It's a UNIX specific (Windows also supports it) form of interprocess 
 communication. Think about it as channel which could provide bidirectional flow 
 of data between two programs. It also provides child process with some terminal
 services (size, list of supported colors, etc).
 
-**Why is that even needed?**
+**Why is that even needed?**<br>
 It's needed for situations when you need to run terminal application without 
 terminal.
 
-**Why on earth even run terminal applications without a terminal!?**
+**Why on earth even run terminal applications without a terminal!?**<br>
 For example: when you connected to the server via SSH - the server isn't 
 running a terminal, it just sends data through the internet to the client.
 But some programs on the server expects to be executed in the terminal, to know 
 how exactly to render data (e.g. `vim`, `nano`), so SSH server provides 
 pseudo-terminal for them.
 
-**It seems like a very niche use case for that, are any other usages for PTYs?**
+**It seems like a very niche use case for that, are any other usages for PTYs?**<br>
 Interesting fact: I didn't use above the term `terminal emulator` and thats not 
 for brevity.
 PTYs are used when you don't have a real physical terminal device like VT-100.
 When you are opening `terminal emulator` such as `Konsole`, under the hood there
 is runned pseudo-terminal.
 
-So the use cases are following:
+**So the use cases are following:**<br>
 - terminal emulators (`xterm`, `konsole`, `yakuake`)
 - ssh servers.
 - terminal multiplexers (`GNU screen`, `tmux`, `zellij`).
@@ -45,7 +45,7 @@ The latter two use cases are the main focus for the `pyntercept`.
 ┌─────────────┐       ┌───────────────┐
 │ src (stdin) │       │ dest (stdout) │
 └─────────────┘       └───────────────┘
- (1) │                        ^ (6)      
+ (1) │                         ^(6)      
      │   ┌─────────────────┐───┘        (0)┌────────────────┐
      └──>│ parent process  │──────────────>│ child process  │
          └─────────────────┘               └────────────────┘
@@ -64,17 +64,12 @@ The latter two use cases are the main focus for the `pyntercept`.
 0.  parent process first allocates resources for processes interaction and then 
     runs child process with specified arguments and behaving as proxy object for 
     enteraction with child process.
-
 1.  parent process receives input from source (by default stdin).
-
 2.  then parent could do any transformations to it and 
     even could decide to send it to the child process or not.
-
 3.  child process reads data from step (1) as its `stdin`.
-
 4.  child process could generate some output and writes it into the child 
     terminal.
-
 5.  parent process reads output sent by child process. Like in step 2, parent 
     process can transform output data and conditionally send it to the 
     destination as step (6).
@@ -97,7 +92,6 @@ pip install pyntercept
 # roadmap
 -   curses support of 256, true colors.
 -   fix rendering with `rich` python library.
--   abstract class to generilize rendering with different backends.
 -   optional dependencies `pyntercept[pyte]`, `pyntercept[rich]`, etc. 
 -   filters, different rendering stages and strategies to give an ability to
     pass data into wider spectre of the programs.

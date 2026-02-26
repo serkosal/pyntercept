@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 import termios
 import os
 import select
@@ -13,26 +13,57 @@ class FD_UpdCallback(Protocol):
         ...
 
 
-# class BasePTYProcess(ABC):
-#     slot
+class BasePTYProcess(ABC):
+    
+    __slots__ = ('src_fd', 'dest_fd', 'err_fd', 'on_parent_src_upd', 
+        'on_parent_src_upd', 'on_child_out'
+    )
+    
+    @abstractmethod
+    def set_size(self, width, height) -> None: 
+        pass
+    
+    @abstractmethod
+    def get_size(self, width, height) -> tuple[int, int]:
+        '''Returns size as tuple[height, width].'''
+        pass
+    
+    @abstractmethod
+    def child_alive(self) -> bool:
+        pass
+    
+    @abstractmethod
+    def update(self, *args, **kwargs) -> bool:
+        pass
+    
+    @abstractmethod
+    def read(self) -> bytes:
+        pass
+    
+    @abstractmethod
+    def write(self) -> int:
+        pass
 
-def default_on_src_upd(process: "PTYProcess", *args, **kwargs) -> bytes:
+
+def default_on_src_upd(process: BasePTYProcess, *args, **kwargs) -> bytes:
     '''Reads input from source (default stdin) and pass to the child.'''
-    data =  os.read(process.src_fd, 2048)  # read user input
-    process.write(data)                    # pass input into child process
+    data = os.read(process.src_fd, 2048)   # read user input
+    process.write(data)     # pass it into the child process
     
     return data
 
 
-def default_on_child_out(process: "PTYProcess", *args, **kwargs) -> bytes:
+def default_on_child_out(process: BasePTYProcess, *args, **kwargs) -> bytes:
     '''Does nothing, just reads data from child and returns it.'''
     
     return process.read()                 # read output from editor
 
 
-class PTYProcess:
+class PTYProcess(BasePTYProcess):
     '''Encapsulate child process and PTY related utilities.   
     '''
+    
+    __slots__ = ('_pid', '_parent_fd', '_child_fd')
     
     def __init__(
         self, 
