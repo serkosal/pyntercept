@@ -13,5 +13,3 @@ def patched_strip_control_codes(
 
 import rich.control
 rich.control.strip_control_codes = patched_strip_control_codes
-
-# strip_control_codes = patched_strip_control_codes

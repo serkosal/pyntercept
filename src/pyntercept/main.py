@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 
 import sys
-from pyntercept import patch_rich
-
+import curses
 
 import pyte
-from rich.console import Console
 
-
-from pyntercept.draw import draw_pyte_scr_rich
+from pyntercept.pyte_utils.draw import draw_pyte_scr_curses
 from pyntercept.tty_utils import enter_raw_mode, exit_raw_mode
 from pyntercept.process import PTYProcess
 
@@ -19,12 +16,12 @@ def on_out_upd(
     process: PTYProcess,
     screen: pyte.Screen,
     stream: pyte.ByteStream,
-    console: Console
+    curses_window: curses.window
 ) -> bytes:
     data = process.on_out_fd_upd()
 
     stream.feed(data)
-    draw_pyte_scr_rich(screen, console)
+    draw_pyte_scr_curses(screen, curses_window)
     
     return data
 
@@ -39,26 +36,38 @@ def main():
     )
     
     h, w = pty_process.get_size()
+    
     screen = pyte.Screen(w, h)
-    console = Console(width=w, height=h)
     
     try:
-        # alternate_scr_on(stdout)
-        # switch_echo(stdin, False)
         old_stdin = enter_raw_mode(stdin)
-        old_stdout = enter_raw_mode(stdout)
+        curses_win = curses.initscr()
+        curses.noecho()
+        curses.cbreak()
+        curses_win.keypad(True)
         
-        # attrs = termios.tcgetattr(stdin.fileno())
-        # # enable implementation-defined output processing.
-        # attrs[1] |= termios.OPOST
-        # attrs[1] |= termios.ONLCR # enable NL -> CRNL
-        # termios.tcsetattr(stdin.fileno(), termios.TCSANOW, attrs)
+        COLORS = [
+            curses.COLOR_BLACK,
+            curses.COLOR_RED,
+            curses.COLOR_YELLOW,
+            curses.COLOR_GREEN,
+            curses.COLOR_BLUE,
+            curses.COLOR_CYAN,
+            curses.COLOR_MAGENTA,
+            curses.COLOR_WHITE,
+        ]
+        curses.start_color()
+        curses.use_default_colors()
+        for i in range(1, min( len(COLORS), curses.COLORS) ):
+            curses.init_pair(i, COLORS[i], -1)
         
         stream = pyte.ByteStream(screen)
-        stream.feed(pty_process.on_out_fd_upd())
-        draw_pyte_scr_rich(screen, console)
+        init_data = pty_process.on_out_fd_upd()
+        stream.feed(init_data)
+        draw_pyte_scr_curses(screen, curses_win)
+
         
-        while pty_process.update(screen, stream, console):
+        while pty_process.update(screen, stream, curses_win):
             pass
                 
     
@@ -66,9 +75,10 @@ def main():
         pass
     # finally:
         exit_raw_mode(stdin, old_stdin)
-        exit_raw_mode(stdout, old_stdout)
-        # switch_echo(stdin, True)
-        # alternate_scr_off(stdout)
+        curses.nocbreak()
+        curses_win.keypad(False)
+        curses.echo()
+        curses.endwin()
 
 
 if __name__ == "__main__":

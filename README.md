@@ -17,10 +17,14 @@ pip install pyntercept
 ```
 
 # roadmap
-1.  filters, different rendering stages and strategies to give an ability to
+-   curses support of 256, true colors.
+-   fix rendering with `rich` python library.
+-   abstract class to generilize rendering with different backends.
+-   optional dependencies `pyntercept[pyte]`, `pyntercept[rich]`, etc. 
+-   filters, different rendering stages and strategies to give an ability to
     pass data into wider spectre of the programs.
-2.  wider support of external libraries, programs and use cases.
-3.  accumulate differences (like cursor movement or character changes) to 
+-   wider support of external libraries, programs and use cases.
+-   accumulate differences (like cursor movement or character changes) to 
     optimize rendering and support more environments and use cases.
-4.  support of Windows and other operating systems.
-5.  add built-in ability to specify areas of the terminal where to render data.
+-   support of Windows and other operating systems.
+-   add built-in ability to specify areas of the terminal where to render data.
