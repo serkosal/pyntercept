@@ -1,6 +1,6 @@
 [project]
 name = "pyntercept"
-version = "0.0.7.dev6"
+version = "0.0.10.dev1"
 authors = [
     { name="Sergey Kosykh", email="s3rkosal@gmail.com"}
 ]
