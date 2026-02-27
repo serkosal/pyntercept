@@ -7,36 +7,107 @@ from typing import TextIO, Callable, Any
 from types import TracebackType
 
 from pyntercept.pseudo_tty import create_pty
+from pyntercept.renderers.baseRenderer import BaseRenderer
 
-type ProcessDestUpd     = Callable[["BasePTYProcess"], bytes]
-type ProcessCB          = Callable[["BasePTYProcess"], None]
-type ProcessPostInitCB  = Callable[["BasePTYProcess", bytes], None]
+type DataHandler = Callable[[bytes], bytes]
 
 class BasePTYProcess(ABC):
     
-    __slots__ = ('src', 'dest', 'err', 'on_parent_src_upd', 'on_child_out', 
-        '_init_cb', '_post_init_cb', '_exit_cb', 'renderer', 'auto_render',
-        'data'
+    __slots__ = ('src', 'dest', 'err',
+        'src_transforms', 'out_transforms', 
+        'renderer', 'auto_render',
     )
     
     src: TextIO
     dest: TextIO
     err: TextIO
     
-    on_parent_src_upd:  ProcessDestUpd
-    on_child_out:       ProcessDestUpd
-    _init_cb:           ProcessCB
-    _post_init_cb:      ProcessCB
-    renderer:           ProcessCB
+    src_transforms: list[DataHandler]
+    out_transforms: list[DataHandler]
+    renderer:       BaseRenderer
     
-    data: dict[str, Any]
     
-    def render(self) -> None:
-        if self.renderer:
-            self.renderer(self)
+    def __init__(self,
+        renderer: BaseRenderer,
+        auto_render: bool,
+        width: int | None = None,
+        height: int | None = None,
+        
+        source: TextIO | None = None,
+        destination: TextIO | None = None,
+        error: TextIO | None = None,
+        
+        src_transforms: list[DataHandler] = [],
+        out_transforms: list[DataHandler] = [],
+    ):
+        self.renderer = renderer
+        self.auto_render = auto_render
+        
+        self.src     = source        or sys.stdin
+        self.dest    = destination   or sys.stdout
+        self.err     = error         or sys.stderr
+        
+        self.src_transforms = src_transforms
+        self.out_transforms = out_transforms
+        
+        if width is None or height is None:
+            dest_fd = self.dest.fileno()
+            rows, cols = termios.tcgetwinsize(dest_fd)
+            
+            width = width or cols
+            height = height or rows
+        
+        self.set_size(width, height)
     
-    def update(self) -> bool:
+    
+    def update(self, *args, **kwargs) -> bool:
         return self.child_alive()
+    
+    
+    def on_src_upd(self, *args, **kwargs) -> bool:        
+        # data = process.src.read(2048).encode()  # read user input
+        data = os.read(self.src.fileno(), 2048)
+        
+        for transform in self.src_transforms:
+            data = transform(data, *args, **kwargs)
+        
+        self.write(data)
+        
+        return True
+    
+    
+    def on_child_out(self, *args, **kwargs) -> bool:
+        data = self.read()
+        
+        status = bool(data)
+                
+        for transform in self.out_transforms:
+            data = transform(data, *args, **kwargs)
+
+        if data:
+            self.renderer.update(data)
+            if self.auto_render:
+                self.renderer.render()
+                
+        return status
+
+    
+    def __enter__(self):
+        self.renderer.init()
+        
+        init_data = self.read()
+        self.renderer.post_init(init_data)
+        
+        return self
+    
+    
+    def __exit__(
+        self, 
+        exc_type: type[BaseException] | None, 
+        exc: BaseException | None, 
+        tb: TracebackType | None
+    ) -> bool | None:
+        self.renderer.exit()
     
     
     @abstractmethod
@@ -61,21 +132,6 @@ class BasePTYProcess(ABC):
         pass
 
 
-def default_on_src_upd(process: BasePTYProcess) -> bytes:
-    '''Reads input from source (default stdin) and pass to the child.'''
-    # data = process.src.read(2048).encode()  # read user input
-    data = os.read(process.src.fileno(), 2048)
-    process.write(data)                 # pass it into the child process
-    
-    return data
-
-
-def default_on_child_out(process: BasePTYProcess) -> bytes:
-    '''Does nothing, just reads data from child and returns it.'''
-    
-    return process.read()                 # read output from editor
-
-
 class PTYProcess(BasePTYProcess):
     '''Encapsulate child process and PTY related utilities.   
     '''
@@ -88,7 +144,10 @@ class PTYProcess(BasePTYProcess):
     
     def __init__(
         self, 
-        argv: list[str], 
+        argv: list[str],
+        
+        renderer: BaseRenderer,
+        auto_render: bool = True,
         
         width: int | None = None,
         height: int | None = None,
@@ -97,13 +156,8 @@ class PTYProcess(BasePTYProcess):
         destination:    TextIO | None = None,
         error:          TextIO | None = None,
         
-        on_parent_src_upd:  ProcessDestUpd = default_on_src_upd,
-        on_child_out_upd:   ProcessDestUpd = default_on_child_out,
-        renderer:           ProcessCB | None = None,
-        auto_render: bool = True,
-        init_cb:            ProcessCB | None = None,
-        post_init_cb:       ProcessCB | None = None,
-        exit_cb:            ProcessCB | None = None,
+        src_transforms: list[DataHandler] = [],
+        out_transforms: list[DataHandler] = [],
     ):
         pid, parent_fd, child_fd = create_pty(argv)
         
@@ -111,46 +165,10 @@ class PTYProcess(BasePTYProcess):
         
         self._parent_fd = parent_fd
         self._child_fd  = child_fd
-        self.src     = source        or sys.stdin  
-        self.dest    = destination   or sys.stdout
-        self.err     = error         or sys.stderr
         
-        self.on_parent_src_upd = on_parent_src_upd
-        self.on_child_out      = on_child_out_upd
-        self.renderer          = renderer
-        self.auto_render       = auto_render
-        self._post_init_cb     = post_init_cb
-        self._init_cb          = init_cb
-        self._exit_cb          = exit_cb
-        self.data = {}
-        
-        if width is None or height is None:
-            dest_fd = self.dest.fileno()
-            rows, cols = termios.tcgetwinsize(dest_fd)
-            
-            width = width or cols
-            height = height or rows
-        
-        self.set_size(width, height)
-    
-    
-    def __enter__(self):
-        self._init_cb(self)
-        
-        init_data = self.read()
-        if self._post_init_cb:
-            self._post_init_cb(self, init_data)
-        return self
-    
-    
-    def __exit__(
-        self, 
-        exc_type: type[BaseException] | None, 
-        exc: BaseException | None, 
-        tb: TracebackType | None
-    ) -> bool | None:
-        self._exit_cb(self)
-    
+        super().__init__(renderer, auto_render, width, height, 
+            source, destination, error, src_transforms, out_transforms
+        )
     
     
     def set_size(self, width = 60, height = 20):
@@ -167,25 +185,21 @@ class PTYProcess(BasePTYProcess):
         return rpid == 0
     
     
-    def update(self) -> bool:
-        if not super().update(): return False
+    def update(self, *args, **kwargs) -> bool:
+        if not super().update(*args, **kwargs): return False
         
         src_fd = self.src.fileno()
-        # aks OS for file descriptors updates
+        # ask OS for file descriptors updates
         rlist, _, _ = select.select([src_fd, self._parent_fd], [], [], 0)
         
-        return_status = True
+        status = True
         if src_fd in rlist:
-            data = self.on_parent_src_upd(self)
-            return_status *= bool(data)
+            status *= self.on_src_upd(*args, **kwargs)
         
-        if return_status and self._parent_fd in rlist:
-            data = self.on_child_out(self)
-            if data and self.auto_render:
-                self.render()
-            return_status *= bool(data)
+        if self._parent_fd in rlist:
+            status *= self.on_child_out(*args, **kwargs)
         
-        return return_status
+        return status
     
     
     def read(self) -> bytes:
