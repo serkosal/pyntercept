@@ -1,13 +1,11 @@
-import sys
-from typing import TextIO
+from pyntercept.process import BasePTYProcess
 
 
-def draw_data(data: bytes, dest: TextIO | None) -> None:
-    if dest is None:
-        dest = sys.stdout
+def draw_data(pr: BasePTYProcess) -> None:
+    data = pr.data["data"]
     
     try:
-        dest.write(data.decode())
-        dest.flush()
+        pr.dest.write(data.decode())
+        pr.dest.flush()
     except Exception as e:
         print(f"An error occurred: {e}")

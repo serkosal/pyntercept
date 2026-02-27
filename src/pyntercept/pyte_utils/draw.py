@@ -1,15 +1,16 @@
 import curses
-import sys
-from typing import TextIO
 
 import pyte
 
 from .utils import pyte_colors
+from pyntercept.process import BasePTYProcess 
 
 def draw_pyte_scr(
-    screen: pyte.Screen, 
-    dest: TextIO = sys.stdout
+    pr: BasePTYProcess
 ) -> None:
+
+    screen: pyte.Screen = pr.data["screen"]
+    dest = pr.dest
 
     dest.write('\x1B[2J') # clear scr
     dest.write(f'\x1B[H') # move cursor to the position 0,0 
@@ -26,10 +27,10 @@ def draw_pyte_scr(
     dest.flush()
 
     
-def draw_pyte_scr_curses(
-    screen: pyte.Screen,
-    window: curses.window
-) -> None:
+def draw_pyte_scr_curses(pr: BasePTYProcess) -> None:
+
+    screen: pyte.Screen   = pr.data["screen"]
+    window: curses.window = pr.data["cwin"]
     
     window.clear()          # clear scr
     window.move(0, 0)       # move cursor to the position 0,0
