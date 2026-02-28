@@ -36,8 +36,19 @@ class UnixBaseRendererMixin(BaseRendererMixin):
         termios.tcsetattr(target, termios.TCSANOW, new_attr)
     
     
-    def set_raw(self, state = True, target: TextIO | None = None):
-        
+    def set_cbreak(self, state = True, target: TextIO | None = None):
+        if target is None:
+            target = self.src
+            
+        if state:
+            self._old_term_attrib[target] = termios.tcgetattr(target)
+            tty.setcbreak(target)
+        else:
+            settings = self._old_term_attrib.pop(target)
+            termios.tcsetattr(target.fileno(), termios.TCSADRAIN, settings)
+    
+    
+    def set_raw(self, state = True, target: TextIO | None = None):        
         if target is None:
             target = self.src
 

@@ -49,9 +49,14 @@ class PyteRenderer(PyteRendererMixin, AnsiRendererMixin, UnixBaseRendererMixin):
             line = self.screen.buffer[y]
             for x in line:
                 ch = self.screen.buffer[y][x]
-                self.dest.write(ch.data)
+                if ch.data.isprintable():
+                    # self.set_cursor(x, y)
+                    self.dest.write(ch.data)
+                else:
+                    self.dest.write(' ')
             if y != len(self.screen.buffer) - 1: 
                 self.dest.write('\r\n')
+                # self.move_cursor(0, 1)
 
-        self.set_cursor(self.screen.cursor.x+1, self.screen.cursor.y+1)
+        # self.set_cursor(self.screen.cursor.x+1, self.screen.cursor.y+1)
         self.dest.flush()

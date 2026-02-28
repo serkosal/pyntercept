@@ -1,13 +1,24 @@
 import curses
 from typing import TextIO
 
-from .pyteRenderer import PyteRenderer
-from .helpers import set_raw
+from .mixins.pyteRendererMixin import PyteRendererMixin
+from .mixins.unixBaseRendererMixin import UnixBaseRendererMixin
 
-class CursesRenderer(PyteRenderer):
+class CursesRenderer(PyteRendererMixin, UnixBaseRendererMixin):
     
-    __slots__ = ('cwin', '_old_term_attrib')
-    cwin: curses.window | None = None
+    # __slots__ = ('cwin', '_old_term_attrib')
+    cwin: curses.window | None
+    
+    COLORS = {
+        "black": 0,
+        "red": 1,
+        "yellow": 2,
+        "green": 3,
+        "blue": 4,
+        "cyan": 5,
+        "magenta": 6,
+        "white": 7
+    }
     
     def __init__(
         self, width: int, height: int, 
@@ -15,9 +26,10 @@ class CursesRenderer(PyteRenderer):
         err: TextIO | None = None
     ):
         super().__init__(width, height, src, dest, err)
+        self.cwin = None
         
     
-    def _init_colors():
+    def _init_colors(self):
         COLORS = [
             curses.COLOR_BLACK,
             curses.COLOR_RED,
@@ -40,18 +52,49 @@ class CursesRenderer(PyteRenderer):
             raise RuntimeError
 
         self.cwin = curses.initscr()
+        self._init_colors()
         self.set_raw(True, self.src)
         curses.noecho()
         curses.cbreak()
         self.cwin.keypad(True)
     
     
-    def exit(self):
+    def exit(self):        
         self.set_raw(False, self.src)
         curses.nocbreak()
         self.cwin.keypad(False)
         curses.echo()
         curses.endwin()
+    
+    
+    def set_echo(self, state = False, target: TextIO | None = None):
+        
+        if target != self.src:
+            super().set_echo(state, target)
+        
+        if not state:
+            curses.noecho()
+        else:
+            curses.echo()
+    
+    
+    def alt_scr(self, state=True, target = None):
+        raise NotImplementedError
+        # super().alt_scr(state, target)
+    
+    
+    def clear_scr(self):
+        self.cwin.clear()
+        
+    
+    def set_cursor(self, x, y):
+        self.cwin.move(y, x)
+        
+        
+    def move_cursor(self, dx, dy):
+        x = self.screen.cursor.x
+        y = self.screen.cursor.y
+        return super().move_cursor(dx + x, dy + y)
     
     
     def render(self): 
@@ -70,31 +113,14 @@ class CursesRenderer(PyteRenderer):
                         if ch.underscore:       attrib |= curses.A_UNDERLINE
                         if ch.italics:          attrib |= curses.A_ITALIC
                         if ch.reverse:          attrib |= curses.A_REVERSE
-                        # if ch.strikethrough:    attrib |= curses.A_
-                        if ch.fg in pyte_colors:
-                            attrib |= curses.color_pair(pyte_colors[ch.fg])
-                        if ch.bg in pyte_colors:
-                            attrib |= curses.color_pair(pyte_colors[ch.bg])
-                        window.addch(y, x, ch.data, attrib)
+                        if ch.strikethrough:    attrib |= curses.A_
+                        if ch.fg in self.COLORS:
+                            attrib |= curses.color_pair(self.COLORS[ch.fg])
+                        if ch.bg in self.COLORS:
+                            attrib |= curses.color_pair(self.COLORS[ch.bg])
+                        self.cwin.addch(y, x, ch.data, attrib)
                     except Exception as _: pass
         try:
-            window.move(screen.cursor.y, screen.cursor.x)
-            window.refresh()
+            self.cwin.move(self.screen.cursor.y, self.screen.cursor.x)
+            self.cwin.refresh()
         except Exception as _: pass
-    
-    
-    @abstractmethod
-    def alt_scr(self, state = True, target: TextIO | None = None):
-        pass
-    
-    
-    @abstractmethod
-    def set_echo(self, state = False, target: TextIO | None = None):
-        pass
-    
-    
-    def set_raw(self, state = True, target: TextIO | None = None):
-        if target is None:
-            target = self.src
-            
-        set_raw(target, self._old_term_attrib, state)
