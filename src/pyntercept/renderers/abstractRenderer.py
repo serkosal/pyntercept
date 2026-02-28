@@ -1,23 +1,10 @@
 from abc import ABC, abstractmethod
-import sys
 from typing import TextIO
 
-class BaseRenderer(ABC):
+class AbstractRenderer(ABC):
+    '''Abstract base class for rendering.'''
     
-    __slots__ = ('src', 'dest', 'err', 'render_data')
-    
-    src: TextIO
-    dest: TextIO
-    render_data: bytes
-    
-    def __init__(
-        self, src: TextIO | None = None, dest: TextIO | None = None,
-        err: TextIO | None = None
-    ):
-        self.src  = src   or sys.stdin
-        self.dest = dest  or sys.stdout
-        self.err  = err   or sys.stderr
-        
+    __slots__ = ()
     
     @abstractmethod
     def init(self):
@@ -35,13 +22,29 @@ class BaseRenderer(ABC):
     
     
     @abstractmethod
-    def update(self, data: bytes): 
+    def update(self, data: bytes):
         pass
     
     
     @abstractmethod
-    def render(self): 
+    def render(self):
         pass
+    
+    
+    @abstractmethod
+    def move_cursor(self, dx, dy):
+        pass
+    
+    
+    @abstractmethod
+    def set_cursor(self, x, y):
+        pass
+    
+    
+    @abstractmethod
+    def clear_scr(self):
+        pass
+    
     
     
     @abstractmethod
