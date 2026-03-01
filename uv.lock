@@ -34,12 +34,13 @@ wheels = [
 
 [[package]]
 name = "pyntercept"
-version = "0.0.19"
+version = "0.0.20"
 source = { editable = "." }
 
 [package.optional-dependencies]
 pyte = [
     { name = "pyte" },
+    { name = "rich" },
 ]
 rich = [
     { name = "rich" },
@@ -48,6 +49,7 @@ rich = [
 [package.metadata]
 requires-dist = [
     { name = "pyte", marker = "extra == 'pyte'", specifier = ">=0.8.2" },
+    { name = "rich", marker = "extra == 'pyte'" },
     { name = "rich", marker = "extra == 'rich'" },
 ]
 provides-extras = ["rich", "pyte"]

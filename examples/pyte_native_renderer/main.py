@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from pyntercept.processes.process import PTYProcess
-from pyntercept.renderers import PyteRenderer
+from pyntercept.renderers.pyteRenderer import PyteRenderer
 
 
 def main():
