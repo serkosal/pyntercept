@@ -1,22 +1,35 @@
 [project]
 name = "pyntercept"
 version = "0.0.19"
+keywords = [
+    "cli", 
+    "pty", 
+    "utility", 
+    "automation", 
+    "developer tools", 
+    "command line"
+]
 authors = [
     { name="Sergey Kosykh", email="s3rkosal@gmail.com"}
 ]
 description = "library & utility to intercept i/o from interactive CLI programs"
 readme = "README.md"
 classifiers = [
+    "Development Status :: 1 - Planning",
     "Programming Language :: Python :: 3",
     "Operating System :: POSIX",
     "Operating System :: Unix",
-    "Environment :: Console"
+    "Environment :: Console",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Utilities"
 ]
 license-files = ["LICENSE"]
 requires-python = ">=3.12"
-dependencies = [
-    "pyte>=0.8.2",
-]
+dependencies = []
+[project.optional-dependencies] 
+rich = ["rich"]
+pyte = ["rich", "pyte>=0.8.2"]
+
 
 [project.urls]
 Homepage = "https://github.com/serkosal/pyntercept"

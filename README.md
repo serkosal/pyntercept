@@ -12,8 +12,8 @@ of data between two programs. It also provides child process with some terminal
 services (size, list of supported colors, etc).
 
 **Why is that even needed?**<br>
-It's needed for situations when you need to run terminal application without 
-terminal.
+It's needed for automatization or situations when you need to run console 
+applications in the environments without a terminal.
 
 **Why on earth even run terminal applications without a terminal!?**<br>
 For example: when you connected to the server via SSH - the server isn't 
@@ -78,25 +78,37 @@ The latter two use cases are the main focus for the `pyntercept`.
 
 ## to install pyntercept as program
 
-using pipx
-```console
+```shell
 pipx install pyntercept
 ```
 
 ## to install pyntercept as library
 
-```console
+```shell
 pip install pyntercept
 ```
+
+### installing optional dependencies
+
+```shell
+# if you want rich renderer which also will install pyntercept[pyte]
+pip install pyntercept[rich] 
+pip install pyntercept[pyte] # if you want pyte (Buffered) renderer
+```
+
+available optional dependencies are:
+-   rich
+-   pyte
 
 # roadmap
 -   curses support of 256, true colors.
 -   fix rendering with `rich` python library.
--   optional dependencies `pyntercept[pyte]`, `pyntercept[rich]`, etc. 
+-   support of Don Libes' `expect` language
+-   [DONE] optional dependencies `pyntercept[pyte]`, `pyntercept[rich]`, etc. 
 -   filters, different rendering stages and strategies to give an ability to
     pass data into wider spectre of the programs.
 -   wider support of external libraries, programs and use cases.
--   accumulate differences (like cursor movement or character changes) to 
+-   [DONE] accumulate differences (like cursor movement or character changes) to 
     optimize rendering and support more environments and use cases.
 -   support of Windows and other operating systems.
 -   add built-in ability to specify areas of the terminal where to render data.
